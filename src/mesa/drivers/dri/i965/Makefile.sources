@@ -142,5 +142,6 @@ i965_FILES = \
 	gen8_instruction.cpp \
 	gen8_sf_state.c \
 	gen8_vec4_generator.cpp \
-	gen8_wm_depth_stencil.cpp \
+	gen8_vs_state.c \
+	gen8_wm_depth_stencil.c \
         $()
