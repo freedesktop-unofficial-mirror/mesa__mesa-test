@@ -464,7 +464,10 @@ emit:
 void
 intel_emit_depth_stall_flushes(struct brw_context *brw)
 {
-   assert(brw->gen >= 6 && brw->gen <= 7);
+   /* XXX: These workaround flushes may not be necessary on gen8.
+    * XXX: Investigation is needed.
+    */
+   assert(brw->gen >= 6 && brw->gen <= 8);
 
    BEGIN_BATCH(4);
    OUT_BATCH(_3DSTATE_PIPE_CONTROL | (4 - 2));
@@ -499,7 +502,10 @@ intel_emit_depth_stall_flushes(struct brw_context *brw)
 void
 gen7_emit_vs_workaround_flush(struct brw_context *brw)
 {
-   assert(brw->gen == 7);
+   /* XXX: These workaround flushes may not be necessary on gen8.
+    * XXX: Investigation is needed.
+    */
+   assert(brw->gen >= 7 && brw->gen <= 8);
 
    BEGIN_BATCH(4);
    OUT_BATCH(_3DSTATE_PIPE_CONTROL | (4 - 2));
