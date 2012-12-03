@@ -27,102 +27,78 @@
 #include "brw_defines.h"
 #include "brw_multisample_state.h"
 
-void
-gen6_get_sample_position(struct gl_context *ctx,
-                         struct gl_framebuffer *fb,
-                         GLuint index, GLfloat *result)
-{
-   switch (fb->Visual.samples) {
-   case 1:
-      result[0] = result[1] = 0.5f;
-      break;
-   case 4: {
-      uint8_t val = (uint8_t)(brw_multisample_positions_4x[0] >> (8*index));
-      result[0] = ((val >> 4) & 0xf) / 16.0f;
-      result[1] = (val & 0xf) / 16.0f;
-      break;
-   }
-   case 8: {
-      uint8_t val = (uint8_t)(brw_multisample_positions_8x[index>>2] >> (8*(index & 3)));
-      result[0] = ((val >> 4) & 0xf) / 16.0f;
-      result[1] = (val & 0xf) / 16.0f;
-      break;
-   }
-   default:
-      assert(!"Not implemented");
-   }
-}
-
 /**
  * 3DSTATE_MULTISAMPLE
  */
 void
-gen6_emit_3dstate_multisample(struct brw_context *brw,
-                              unsigned num_samples)
+gen8_emit_3dstate_multisample(struct brw_context *brw, unsigned num_samples)
 {
    uint32_t number_of_multisamples = 0;
-   uint32_t sample_positions_3210 = 0;
-   uint32_t sample_positions_7654 = 0;
-
-   assert(brw->gen < 8);
 
    switch (num_samples) {
    case 0:
    case 1:
       number_of_multisamples = MS_NUMSAMPLES_1;
       break;
+   case 2:
+      /* XXX(gen8): 2x not implemented */
+      number_of_multisamples = MS_NUMSAMPLES_4;
+      break;
    case 4:
       number_of_multisamples = MS_NUMSAMPLES_4;
-      sample_positions_3210 = brw_multisample_positions_4x[0];
       break;
    case 8:
       number_of_multisamples = MS_NUMSAMPLES_8;
-      sample_positions_3210 = brw_multisample_positions_8x[0];
-      sample_positions_7654 = brw_multisample_positions_8x[1];
+      break;
+   case 16:
+      /* XXX(gen8): 16x not implemented */
+      number_of_multisamples = MS_NUMSAMPLES_8;
       break;
    default:
-      assert(!"Unrecognized num_samples in gen6_emit_3dstate_multisample");
+      assert(!"Unrecognized num_samples in gen8_emit_3dstate_multisample");
       break;
    }
 
-   /* 3DSTATE_MULTISAMPLE is nonpipelined. */
-   intel_emit_post_sync_nonzero_flush(brw);
-
-   int len = brw->gen >= 7 ? 4 : 3;
-   BEGIN_BATCH(len);
-   OUT_BATCH(_3DSTATE_MULTISAMPLE << 16 | (len - 2));
+   BEGIN_BATCH(2);
+   OUT_BATCH(GEN8_3DSTATE_MULTISAMPLE << 16 | (2 - 2));
    OUT_BATCH(MS_PIXEL_LOCATION_CENTER | number_of_multisamples);
-   OUT_BATCH(sample_positions_3210);
-   if (brw->gen >= 7)
-      OUT_BATCH(sample_positions_7654);
    ADVANCE_BATCH();
 }
-
 
 /**
- * 3DSTATE_SAMPLE_MASK
+ * 3DSTATE_SAMPLE_PATTERN
  */
 void
-gen6_emit_3dstate_sample_mask(struct brw_context *brw,
-                              unsigned num_samples, float coverage,
-                              bool coverage_invert, unsigned sample_mask)
+gen8_emit_3dstate_sample_pattern(struct brw_context *brw)
 {
-   BEGIN_BATCH(2);
-   OUT_BATCH(_3DSTATE_SAMPLE_MASK << 16 | (2 - 2));
-   if (num_samples > 1) {
-      int coverage_int = (int) (num_samples * coverage + 0.5);
-      uint32_t coverage_bits = (1 << coverage_int) - 1;
-      if (coverage_invert)
-         coverage_bits ^= (1 << num_samples) - 1;
-      OUT_BATCH(coverage_bits & sample_mask);
-   } else {
-      OUT_BATCH(1);
-   }
+   BEGIN_BATCH(9);
+   OUT_BATCH(_3DSTATE_SAMPLE_PATTERN << 16 | (9 - 2));
+
+   /* 16x MSAA
+    * XXX: Need to program these.
+    */
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+
+   /* 8x MSAA */
+   OUT_BATCH(brw_multisample_positions_8x[1]); /* sample positions 7654 */
+   OUT_BATCH(brw_multisample_positions_8x[0]); /* sample positions 3210 */
+
+   /* 4x MSAA */
+   OUT_BATCH(brw_multisample_positions_4x[0]);
+
+   /* 2x and 1x MSAA patterns
+    * XXX: need to program 2x.
+    */
+   OUT_BATCH(0x00880000);
    ADVANCE_BATCH();
 }
 
 
-static void upload_multisample_state(struct brw_context *brw)
+static void
+upload_multisample_state(struct brw_context *brw)
 {
    struct gl_context *ctx = &brw->ctx;
    float coverage = 1.0;
@@ -143,16 +119,14 @@ static void upload_multisample_state(struct brw_context *brw)
       }
    }
 
-   gen6_emit_3dstate_multisample(brw, num_samples);
-   gen6_emit_3dstate_sample_mask(brw, num_samples, coverage,
-         coverage_invert, sample_mask);
+   gen8_emit_3dstate_multisample(brw, num_samples);
+   gen6_emit_3dstate_sample_mask(brw, num_samples, coverage, coverage_invert,
+                                 sample_mask);
 }
 
-
-const struct brw_tracked_state gen6_multisample_state = {
+const struct brw_tracked_state gen8_multisample_state = {
    .dirty = {
-      .mesa = _NEW_BUFFERS |
-              _NEW_MULTISAMPLE,
+      .mesa = _NEW_BUFFERS | _NEW_MULTISAMPLE,
       .brw = BRW_NEW_CONTEXT,
       .cache = 0
    },
