@@ -206,7 +206,11 @@ static void brw_emit_prim(struct brw_context *brw,
       intel_batchbuffer_emit_mi_flush(brw);
    }
 
-   if (brw->gen >= 7) {
+   if (brw->gen >= 8) {
+      BEGIN_BATCH(7);
+      OUT_BATCH(CMD_3D_PRIM << 16 | (7 - 2));
+      OUT_BATCH(vertex_access_type);
+   } else if (brw->gen == 7) {
       BEGIN_BATCH(7);
       OUT_BATCH(CMD_3D_PRIM << 16 | (7 - 2));
       OUT_BATCH(hw_prim | vertex_access_type);
