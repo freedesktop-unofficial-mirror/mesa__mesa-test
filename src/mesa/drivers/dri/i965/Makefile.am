@@ -38,6 +38,8 @@ AM_CFLAGS = \
 
 AM_CXXFLAGS = $(AM_CFLAGS)
 
+gen8_instruction_CXXFLAGS = $(AM_CXXFLAGS) -fkeep-inline-functions
+
 noinst_LTLIBRARIES = libi965_dri.la
 libi965_dri_la_SOURCES = $(i965_FILES)
 libi965_dri_la_LIBADD = $(INTEL_LIBS)
