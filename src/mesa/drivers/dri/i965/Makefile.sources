@@ -138,4 +138,5 @@ i965_FILES = \
 	gen8_disasm.cpp \
 	gen8_generator.cpp \
 	gen8_instruction.cpp \
+	gen8_vec4_generator.cpp \
         $()
