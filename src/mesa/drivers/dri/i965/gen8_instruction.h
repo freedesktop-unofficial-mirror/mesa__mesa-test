@@ -209,6 +209,9 @@ struct gen8_instruction {
                        bool header_present,
                        bool end_of_thread);
 
+   /** Disassemble the instruction. */
+   int disassemble(FILE *file, int gen);
+
 private:
    inline unsigned bits(unsigned high, unsigned low) const;
    inline void set_bits(unsigned high, unsigned low, unsigned value);
