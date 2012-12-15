@@ -127,6 +127,10 @@ intel_vertical_texture_alignment_unit(struct brw_context *brw,
       return 4;
    }
 
+   /* Broadwell doesn't support VALIGN_2.  Use 4 instead. */
+   if (brw->gen >= 8)
+      return 4;
+
    return 2;
 }
 
