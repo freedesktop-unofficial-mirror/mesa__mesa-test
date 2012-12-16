@@ -1582,7 +1582,13 @@ vec4_visitor::visit(ir_expression *ir)
       src_reg surf_index =
          src_reg(prog_data->base.binding_table.ubo_start + uniform_block->value.u[0]);
       if (const_offset_ir) {
-         offset = src_reg(const_offset / 16);
+         if (brw->gen >= 8) {
+            /* Put the offset in a GRF; we can't SEND from immediates. */
+            offset = src_reg(this, glsl_type::int_type);
+            emit(MOV(dst_reg(offset), src_reg(const_offset / 16)));
+         } else {
+            offset = src_reg(const_offset / 16);
+         }
       } else {
          offset = src_reg(this, glsl_type::uint_type);
          emit(SHR(dst_reg(offset), op[1], src_reg(4)));
@@ -2983,6 +2989,11 @@ vec4_visitor::get_pull_constant_offset(vec4_instruction *inst,
       }
 
       return index;
+   } else if (brw->gen >= 8) {
+      /* Put the offset in a GRF; we can't SEND from immediates. */
+      src_reg offset = src_reg(this, glsl_type::int_type);
+      emit_before(inst, MOV(dst_reg(offset), src_reg(reg_offset)));
+      return offset;
    } else {
       int message_header_scale = brw->gen < 6 ? 16 : 1;
       return src_reg(reg_offset * message_header_scale);
