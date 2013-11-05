@@ -42,6 +42,8 @@ gen8_upload_3dstate_so_buffers(struct brw_context *brw)
    /* BRW_NEW_TRANSFORM_FEEDBACK */
    struct gl_transform_feedback_object *xfb_obj =
       ctx->TransformFeedback.CurrentObject;
+   struct brw_transform_feedback_object *brw_obj =
+      (struct brw_transform_feedback_object *) xfb_obj;
 
    /* Set up the up to 4 output buffers.  These are the ranges defined in the
     * gl_transform_feedback_object.
@@ -77,9 +79,10 @@ gen8_upload_3dstate_so_buffers(struct brw_context *brw)
                 GEN8_SO_BUFFER_OFFSET_WRITE_ENABLE);
       OUT_RELOC64(bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, start);
       OUT_BATCH(xfb_obj->Size[i] / 4 - 1);
-      OUT_BATCH(0); /* XXX: Stream Output Buffer Offset */
-      OUT_BATCH(0); /* XXX: High 16 bits */
-      OUT_BATCH(0); /* XXX: probably wrong */
+      OUT_RELOC64(brw_obj->offset_bo,
+                  I915_GEM_DOMAIN_INSTRUCTION, I915_GEM_DOMAIN_INSTRUCTION,
+                  i * sizeof(uint32_t));
+      OUT_BATCH(0xFFFFFFFF); /* Use offset_bo as the "Stream Offset." */
       ADVANCE_BATCH();
    }
 }
