@@ -158,6 +158,11 @@ void intel_batchbuffer_cached_advance(struct brw_context *brw);
 				       read_domains, write_domain, delta); \
 } while (0)
 
+/* Handle 48-bit address relocations for Gen8+ */
+#define OUT_RELOC64(buf, read_domains, write_domain, delta) \
+   OUT_RELOC(buf, read_domains, write_domain, delta);       \
+   OUT_BATCH(0);
+
 #define ADVANCE_BATCH() intel_batchbuffer_advance(brw);
 #define CACHED_BATCH() intel_batchbuffer_cached_advance(brw);
 
